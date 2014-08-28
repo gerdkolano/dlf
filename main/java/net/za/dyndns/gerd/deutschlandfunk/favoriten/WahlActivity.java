@@ -20,7 +20,10 @@ import android.widget.Button;
 import android.widget.Toast;
 import static android.view.View.*;
 
-public class WahlActivity
+// Erprobe git 2014-08-28
+
+public class
+    WahlActivity
     extends ActionBarActivity
     implements BenutzerEdit.EditNameDialogListener {
   private int debug;
