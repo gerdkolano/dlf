@@ -19,19 +19,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Created by hanno on 2014-08-28 10:10.
  */
 public class Serien {
-  private List<Serie> serie;
+  private TreeSet<Serie> serie;
+  private TreeSet<Serie> geordneteMenge;
   private String filename;
   private Activity activity;
   private Context context;
   private int debug;
   private DownloadDlfunk downloadDlfunk;
   private MediaPlayer mediaPlayer;
-  private int debugSchranke=3;
+  private int debugSchranke = 3;
 
   public Serien(Activity activity, Context context, int debug, MediaPlayer mediaPlayer) {
     this.activity = activity;
@@ -39,7 +41,8 @@ public class Serien {
     this.debug = debug;
     this.mediaPlayer = mediaPlayer;
     this.filename = "serien.txt";
-    serie = new ArrayList<Serie>();
+    serie = new TreeSet<Serie>();
+    this.geordneteMenge = new TreeSet<Serie>();
     erzeugeSerien();
   }
 
@@ -47,7 +50,7 @@ public class Serien {
     return serie.size();
   }
 
-  public List<Serie> getSerie() {
+  public TreeSet<Serie> getSerie() {
     return serie;
   }
 
@@ -65,18 +68,18 @@ public class Serien {
       this.serie.add(new Serie("Wirtschaft und Gesellschaft komplett", "searchterm=wirtschaft+und+gesellschaft+komplette"));
       this.serie.add(new Serie("Kultur heute", "searchterm=Kultur+Heute"));
       retteInDieSeriendatei();
-      if (debug>2) Log.i("SE10", "Lies \"serien\" aus dem Programmtext");
+      if (debug > 2) Log.i("SE10", "Lies \"serien\" aus dem Programmtext");
     }
     return this;
   }
 
   public boolean loescheDieSeriendatei() {
-    if(debug>2) Log.i("SE30", "lösche " + filename);
+    if (debug > 2) Log.i("SE30", "lösche " + filename);
     boolean erg = context.deleteFile(filename);
     if (erg) {
-      if(debug>0) Log.i("SE31", filename + " gelöscht.");
+      if (debug > 0) Log.i("SE31", filename + " gelöscht.");
     } else {
-      if(debug>0) Log.i("SE32", "kann " + filename + " nicht löschen.");
+      if (debug > 0) Log.i("SE32", "kann " + filename + " nicht löschen.");
     }
     return erg;
   }
@@ -93,20 +96,20 @@ public class Serien {
     }
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
-      if (debug>2) Log.i("SE20", "Lies \"serien\" aus " + filename);
+      if (debug > 2) Log.i("SE20", "Lies \"serien\" aus " + filename);
       String strLine;
       //Read File Line By Line
       int zeile = 0;
       Serie neueSerie = new Serie();
       while ((strLine = br.readLine()) != null) {
         // Print the content on the logcat
-        if (debug>debugSchranke) Log.i("SE" + String.format("%2d", zeile), strLine);
+        if (debug > debugSchranke) Log.i("SE" + String.format("%2d", zeile), strLine);
         // Sammle die einzelnen Felder
         if (neueSerie.allesGesammelt(strLine, zeile)) {
           this.serie.add(neueSerie);
           neueSerie = new Serie();
         }
-          zeile++;
+        zeile++;
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -120,9 +123,9 @@ public class Serien {
     return true;
   }
 
-public void retteInDieSeriendatei() {
+  public void retteInDieSeriendatei() {
     FileOutputStream outputStream;
-    if (debug>2) Log.i("SE40", "Erzeuge " + filename);
+    if (debug > 2) Log.i("SE40", "Erzeuge " + filename);
     int nummer = 0;
     try {
       outputStream = context.openFileOutput(filename, Context.MODE_PRIVATE);
@@ -139,7 +142,7 @@ public void retteInDieSeriendatei() {
     } catch (Exception e) {
       e.printStackTrace();
     }
-}
+  }
 
   public void append(Serie serie) {
     this.serie.add(serie);
@@ -163,7 +166,8 @@ public void retteInDieSeriendatei() {
   public void stelleSerienauswahlbuttonsHer() {
     String KEINE = "keine Vorwahl";
     Serien serien = new Serien(activity, context, debug, mediaPlayer);
-    if(debug>debugSchranke) Log.i("SR10", " Erstelle " + serien.size() + " Serienauswahlbuttons.");
+    if (debug > debugSchranke)
+      Log.i("SR10", " Erstelle " + serien.size() + " Serienauswahlbuttons.");
     LinearLayout layout = (LinearLayout) activity.findViewById(R.id.welcheSerie);
     int nummer = 0;
     for (Serie serie : serien.getSerie()) {
@@ -178,21 +182,21 @@ public void retteInDieSeriendatei() {
       String suchwort = serie.getSuchbegriff();
       SerienClickHandler handler = new SerienClickHandler(menschenlesbarerName, suchwort);
       //handler.set(menschenlesbarerName, suchbegriff);
-      if (debug>1)
+      if (debug > 1)
         Taste.setText("Serie-" + nummer + " " + menschenlesbarerName + " : " + suchwort);
       else
         Taste.setText(menschenlesbarerName);
       Taste.setId(160847 + nummer++);
-      if (debug>debugSchranke) Log.i("SR20", " " + nummer
+      if (debug > debugSchranke) Log.i("SR20", " " + nummer
           + " \"" + menschenlesbarerName + "\" " + suchwort);
       Taste.setOnClickListener(handler);
       layout.addView(Taste);
     }
-    if(debug>2) Log.i("SR90", serien.size() + " Serienauswahlbuttons hergestellt.");
+    if (debug > 2) Log.i("SR90", serien.size() + " Serienauswahlbuttons hergestellt.");
     SharedPreferences mySharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
     String gespeicherterBegriff = mySharedPrefs.getString("sendungsnamePreff", KEINE);
     if (!gespeicherterBegriff.equals(KEINE)) loadPage(gespeicherterBegriff, seitennummer);
-    if(debug>2) Log.i("SR99", "gespeicherterBegriff=" + gespeicherterBegriff);
+    if (debug > 2) Log.i("SR99", "gespeicherterBegriff=" + gespeicherterBegriff);
   }
 
   class SerienClickHandler implements View.OnClickListener {
@@ -212,38 +216,43 @@ public void retteInDieSeriendatei() {
       loadPage(klickwort, seitennummer);
     }
   }
+
   public void loadPage(String suchbegriff, int seitennummer) {
     /*
     if (((sPref.equals(ANY)) && (wifiConnected || mobileConnected))
         || ((sPref.equals(WIFI)) && (wifiConnected))) {
       */
     if (true /*|| this.wifiConnected || this.mobileConnected*/) {
-      if(debug>debugSchranke) Log.i("SR20", "loadPage " + suchbegriff + " " + seitennummer);
+      if (debug > debugSchranke) Log.i("SR20", "loadPage " + suchbegriff + " " + seitennummer);
       //
       //AsyncTask subclass
       //activity this
       //context WahlActivity.this
       //
       //DownloadXmlTask downloadXmlTask = (DownloadXmlTask)
-          new DownloadXmlTask(
+      new DownloadXmlTask(
           activity, context, this.debug,
-          seitennummer, downloadDlfunk, mediaPlayer
+          downloadDlfunk, mediaPlayer
       ).execute(suchbegriff); // dort ruft doInBackground ladeXmlseiten(http...?drau:suchbegriff)
-      if(debug>debugSchranke) Log.i("SR30", "Im Hintergrund downloadXmlTask.execute(" + suchbegriff + ") " + seitennummer);
+      if (debug > debugSchranke)
+        Log.i("SR30", "Im Hintergrund downloadXmlTask.execute(" + suchbegriff + ") " + seitennummer);
 
       SharedPreferences mySharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
 
       SharedPreferences.Editor editor = mySharedPrefs.edit();
       editor.putString("sendungsnamePreff", suchbegriff);
       if (editor.commit()) {
-        if(debug>debugSchranke) Log.i("SR40", "sendungsnamePreff->" + suchbegriff + " commit'ed");
+        if (debug > debugSchranke)
+          Log.i("SR40", "sendungsnamePreff->" + suchbegriff + " commit'ed");
       } else {
-        if(debug>debugSchranke) Log.i("SR50", "sendungsnamePreff->" + suchbegriff + " nicht commit'ed");
+        if (debug > debugSchranke)
+          Log.i("SR50", "sendungsnamePreff->" + suchbegriff + " nicht commit'ed");
       }
     } else {
       showErrorPage();
     }
   }
+
   // Displays an error if the app is unable to load content.
   private void showErrorPage() {
     activity.setContentView(R.layout.activity_wahl);
