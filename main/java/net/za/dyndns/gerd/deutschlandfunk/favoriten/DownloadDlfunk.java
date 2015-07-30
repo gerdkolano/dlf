@@ -8,7 +8,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.PowerManager;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,23 +29,38 @@ import java.net.URL;
  */
 
 // Implementation of AsyncTask used to download XML feed from srv.deutschlandradio.de.
-// <String, Integer, String>
-// <String, für Deklaration doInBackground(String... urls) und
+// <String, Integer, File>
+// <String, für Parameterliste doInBackground(String... urls) und
 //          für Verwendung  doInBackground.execute(param1, param2, ...)
 // Integer, für Progress
-// String>  für onPostExecute(String result)
+// File>  für onPostExecute(File result)
 //
 public class DownloadDlfunk extends AsyncTask<String, Integer, File>
     implements MediaPlayer.OnPreparedListener {
+  /*
+  *   android.os.AsyncTask<Params, Progress, Result>
+  * 1   Params, the type of the parameters sent to the task upon execution.
+  * 2   Progress, the type of the progress units published during the background computation.
+  * 3   Result, the type of the result of the background computation.
+  *
+  * Integer kann in onProgressUpdate(Integer... publishedProgress) weiterverarbeitet werden.
+  *
+  * String wird an doInBackground(String... urls) übergeben.
+  *
+  * Die Parameter von execute(quellurl, zieldateiname, duration)
+  * sind das Array String... urls in doInBackground(String... urls)
+  *
+  * File kann in onPostExecute(File result) weiterverarbeitet werden.
+  * File wird von doInBackground(String... urls) geliefert.
+  */
   private Activity activity;
   private Context context;
+  private int debug;
   private MediaPlayer mediaPlayer;
   private SeekBar seekBar;
   private TextView ladeOderSpielFortschritt;
   private final Handler handler;
   private Runnable wiederkehrend;
-  private int debug;
-  private int debugSchranke=8;
   private String zieldateiname;
   private final int LADE = 2222;
   private final int SPIELE = 3333;
@@ -65,15 +80,15 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
     zieldateiname = "";
     /*
     ladeOderSpielFortschritt = (TextView) this.activity.findViewById(R.id.fortschritt);
-    if (debug>debugSchranke) Log.i("F 01",
+    if (debug>3) Log.i("F 01",
         String.format( "fortschritt=%s", ladeOderSpielFortschritt.toString()));
 */
   }
-
+/*
   public MediaPlayer getMediaPlayer() {
     return mediaPlayer;
   }
-
+*/
   public String toString() {
     return "Hanno " + super.toString();
   }
@@ -97,18 +112,18 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
   // Zielverzeichnis sdcard/Music/deutschlandfunk
   @Override
   protected File doInBackground(String... urls) {
-    // gerufen von  downloadDlfunk.execute() in MachSendungsButtons
+    // gerufen von  downloadDlfunk.execute() in machSendungsButtons
     // urls[i] sind die Parameter von execute(quellurl, zieldateiname, duration)
     String quellurl = urls[0];
     String zieldateiname = urls[1];
     String duration = urls[2];
-    // Dies ruft hole()
-    // hole() ruft copyStream
+    // Dies ruft holeImBackground()
+    // holeImBackground() ruft copyStream
     // copyStream kann für eine Ladefortschrittsanzeige die Bytes mitzählen
     this.zieldateiname = zieldateiname;
-    File erg = hole("deutschlandfunk", quellurl, zieldateiname, duration);
-    return erg;
+    return holeImBackground("deutschlandfunk", quellurl, zieldateiname, duration);
     // Dies steht in downloadDlfunk.get() zur Verfügung.
+    // Auch als Parameter von onPostExecute
     // get() waits if necessary for the computation to complete,
     // and then retrieves its result.
   }
@@ -165,10 +180,10 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
           //seekChange(v);
           if (fabspieler.isPlaying()) {
             SeekBar seekBar = (SeekBar) v;
-            if (debug>debugSchranke) Log.i("F080", seekBar.toString());
+            if (debug>3) Log.i("F080", seekBar.toString());
             fabspieler.seekTo(seekBar.getProgress());
           }
-          if (debug>debugSchranke) Log.i("F070", event.toString());
+          if (debug>3) Log.i("F070", event.toString());
           return false;
         }
       });
@@ -177,7 +192,7 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
         int jetzt = mediaPlayer.getCurrentPosition();
         if (debug>99) Log.i("F 02",
             String.format( "fortschritt=%s", ladeOderSpielFortschritt.toString()));
-        if (debug>debugSchranke) Log.i("F 03",
+        if (debug>3) Log.i("F 03",
             String.format( "CurPos=%d Update  =%d Max=%d", jetzt, msek, seekBar.getMax()));
         double prozentsatz = 100.0 * jetzt / max;
         seekBar.setMax(max); // max wird in "onPrepared(" gesetzt.
@@ -208,10 +223,10 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
     boolean isPaused = !fabspieler.isPlaying();
     seekBar = (SeekBar) this.activity.findViewById(R.id.SeekBar01);
     ladeOderSpielFortschritt = (TextView) this.activity.findViewById(R.id.fortschritt);
-    if (debug>debugSchranke) Log.i("F030", seekBar.toString());
+    if (debug>3) Log.i("F030", seekBar.toString());
     if (fabspieler != null) {
       final int dauer = fabspieler.getDuration();
-      final int divisor = fabspieler.getDuration() / 100;
+//      final int divisor = fabspieler.getDuration() / 100;
 
       seekBar.setMax(dauer);
       if (debug>0) Log.i("F040", "Dauer = " + dauer + "ms Current = " + fabspieler.getCurrentPosition() + "ms");
@@ -238,7 +253,7 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
           }
         };
         handler.post(wiederkehrend);
-        if (debug>debugSchranke) Log.i("F060", "Progress-Takt " + (deltaMillisekunden / 1000) + " Sekunden");
+        if (debug>3) Log.i("F060", "Progress-Takt " + (deltaMillisekunden / 1000) + " Sekunden");
       }
 
       seekBar.setOnTouchListener(new View.OnTouchListener() {
@@ -248,10 +263,10 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
           //seekChange(v);
           if (fabspieler.isPlaying()) {
             SeekBar seekBar = (SeekBar) v;
-            if (debug>debugSchranke) Log.i("F080", seekBar.toString());
+            if (debug>3) Log.i("F080", seekBar.toString());
             fabspieler.seekTo(seekBar.getProgress());
           }
-          if (debug>debugSchranke) Log.i("F070", event.toString());
+          if (debug>3) Log.i("F070", event.toString());
           return false;
         }
       });
@@ -261,6 +276,15 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
   @Override
   protected void onPostExecute(File result) {
     if (result == null) return;
+    String Gerätename =
+        PreferenceManager.getDefaultSharedPreferences(context).getString("Abspielgerät", "Alt");
+    if (Gerätename.equals("Neu")) {
+          Toast.makeText(context, "A010 Spiele " + result.toString(),
+        Toast.LENGTH_LONG).show();
+      SpieleMp3Ab lass = new SpieleMp3Ab(activity, context, debug);
+      lass.hören(result);
+      return;
+  }
     Toast.makeText(context, "f214 Versuche abzuspielen: " + result.toString(),
         Toast.LENGTH_SHORT).show();
     Uri myUri = Uri.fromFile(result);
@@ -330,7 +354,7 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
   }
 
   private void copyStream(InputStream is, OutputStream os, String duration) {
-    // gerufen von hole()
+    // gerufen von holeImBackground()
     final int buffer_size = 16*1024;
     int bytesSchon = 0;
     int bytesneu = 0;
@@ -360,7 +384,6 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
     File file = new File(Environment.getExternalStoragePublicDirectory(
         Environment.DIRECTORY_MUSIC), albumName);
     if (!file.exists()) {
-      file.mkdir();
       if (debug>0) Log.i("F110", "Stelle Directory " + albumName + " her");
     }
     if (debug>0) Log.i("F120", "Finde Directory " + albumName + " vor");
@@ -369,14 +392,14 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
 
   // Given a string representation of a URL, sets up a connection and
   // copies an input stream to a file.
-  private File hole(String zielVerzeichnis,
+  private File holeImBackground(String zielVerzeichnis,
                     String quellUrl, String zielDatei, String duration) {
     // gerufen von doInBackground
     File ausgabedatei = null;
     try {
       String storageState = Environment.getExternalStorageState();
       if (!storageState.equals(Environment.MEDIA_MOUNTED)) {
-        if (debug>0) Log.i("F130", "hole " + quellUrl);
+        if (debug>0) Log.i("F130", "holeImBackground " + quellUrl);
         return ausgabedatei;
         //return "Leider nicht Environment.MEDIA_MOUNTED";
       }
@@ -391,7 +414,7 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
         //return "Datei " + zielPfad + " existiert bereits";
       }
       URL imageUrl = new URL(quellUrl);
-      HttpURLConnection conn = null;
+      HttpURLConnection conn;
       conn = (HttpURLConnection) imageUrl.openConnection();
       conn.setConnectTimeout(30000);
       conn.setReadTimeout(30000);
@@ -402,9 +425,9 @@ public class DownloadDlfunk extends AsyncTask<String, Integer, File>
       Starts the query
       */
       conn.connect();
-      InputStream is = null;
+      InputStream is;
       is = conn.getInputStream();
-      OutputStream os = null;
+      OutputStream os;
       os = new FileOutputStream(ausgabedatei);
 
       // 2014-07-28

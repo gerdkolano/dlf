@@ -1,8 +1,13 @@
 package net.za.dyndns.gerd.deutschlandfunk.favoriten;
 
+// Hier in WahlActivity ist "this" ein "Context".
+
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -19,6 +24,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import static android.view.View.*;
 
 /* Erprobe git 2014-08-28
@@ -27,9 +35,7 @@ import static android.view.View.*;
 *   git commit
 *   git push -u origin master
 */
-public class
-    WahlActivity
-    extends ActionBarActivity
+public class WahlActivity extends ActionBarActivity
     implements BenutzerEdit.EditNameDialogListener {
   private int debug;
   // Whether there is a Wi-Fi connection.
@@ -41,35 +47,62 @@ public class
   private String suchbegriff;
   private MediaPlayer mediaPlayer;
   private SharedPreferences mySharedPrefs;
-  private int debugSchranke;
   private Button dialogEditButton;
   private Button dialogInfoButton;
   private Button dialogFrageButton;
-  private FragmentManager fm = getFragmentManager();
+  private FragmentManager meinFragmentmanager = getFragmentManager();
+  // The BroadcastReceiver that tracks network connectivity changes.
+  private CheckOnlineStatus receiver;
+  private boolean bevorzugeNetz = true;
+  private String Gerätename = "Alt";
+  private Context context = this;
 
   public WahlActivity() {
     seitenanzahl = 1;
     prefSeite = 3;
+    this.context = this;
     debug = 1; // debug=1 macht die Bedienelemente etwas schwatzhafter
-    debugSchranke = -1;
   }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     if (debug > 0) Log.i("W---", "---------------------");
-    if (debug > 0) Log.i("W000", "onCreate");
+    if (debug > 0) Log.i("W010", "onCreate(Bundle savedInstanceState)");
     // enables the activity icon as a 'home' button.
     // required if "android:targetSdkVersion" > 14
     getActionBar().setHomeButtonEnabled(true);
+    String versionName = "";
+    int versionCode = 0;
+    try {
+      PackageInfo packageInfo;
+      packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+      versionName = packageInfo.versionName;
+      versionCode = packageInfo.versionCode; // build.gradle hängt diesen "versionCode" an "versionName" an.
+    } catch (PackageManager.NameNotFoundException e) {
+      e.printStackTrace();
+    }
+
+    Date dNow = new Date();
+    SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss");
+    getActionBar().setTitle("DLF Version "
+        + versionName + " "
+        //+ versionCode
+        + " von "
+        + ft.format(dNow));
     mediaPlayer = new MediaPlayer(); // idle state
+
+    // Register BroadcastReceiver to track connection changes.
+    IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+    receiver = new CheckOnlineStatus(debug);
+    this.registerReceiver(receiver, filter);
   }
 
   @Override
   protected void onRestart() {
     super.onRestart();
     if (debug > 0) Log.i("W---", "+++++++++++++++++++++");
-    if (debug > 0) Log.i("W005", "onRestart DLF");
+    if (debug > 0) Log.i("W020", "onRestart DLF");
 
     //loadPage(suchbegriff, prefSeite);
   }
@@ -85,40 +118,18 @@ public class
     // Gets the user's network preference settings
     mySharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-    if (debug > 0) Log.i("W010", "onStart DLF is about to become visible");
-    // Teste mal edit und commit
-    if (false) {
-      SharedPreferences.Editor editor = mySharedPrefs.edit();
-      editor.putString("seitennummerPref", "2");
-      //editor.putString("sendungsnamePreff", "kultur");
-      if (editor.commit()) {
-        if (debug > 8) Log.i("W011", "gut");
-      } else {
-        if (debug > 8) Log.i("W011", "schlecht");
-      }
-      String nummertext = mySharedPrefs.getString("seitennummerPref", "1");
-      try {
-        this.prefSeite = Integer.parseInt(nummertext);
-        if (debug > 8) Log.i("W013", "nummertext = " + nummertext);
-      } catch (NumberFormatException e) {
-        //Will Throw exception!
-        //do something! anything to handle the exception.
-        if (debug > 8) Log.i("WE13", nummertext + "!" + e.toString());
-      }
-    }
+    if (debug > 0) Log.i("W030", "onStart DLF is about to become visible");
 
     String nochEineSerie = mySharedPrefs.getString("nochEineSeriePref", "mySharedPrefs liefert nichts");
-    if (debug > debugSchranke) Log.i("W014", "nochEineSerie = " + nochEineSerie);
+    if (debug > 0) Log.i("W040", "nochEineSerie = " + nochEineSerie);
 
     String debugtext = mySharedPrefs.getString("debugPref", "9");
     try {
       this.debug = Integer.parseInt(debugtext);
-      if (debug > 8) Log.i("W014", "debugtext = " + debugtext);
+      if (debug > 8) Log.i("W050", "debugtext = " + debugtext);
     } catch (NumberFormatException e) {
-      if (debug > 8) Log.i("WE14", debugtext + "!" + e.toString());
+      if (debug > 8) Log.i("WE60", debugtext + "!" + e.toString());
     }
-
-    //requestFeature();
 
     setContentView(R.layout.activity_wahl); // für findViewById
 
@@ -134,7 +145,7 @@ public class
         //showEditDialog();
         BenutzerEdit dialogEditFragment = new BenutzerEdit();
         // Show DialogFragment
-        dialogEditFragment.show(fm, "Edit Dialog Fragment");
+        dialogEditFragment.show(meinFragmentmanager, "Edit Dialog Fragment");
       }
     });
 
@@ -144,9 +155,9 @@ public class
         String gespeicherterBegriff
             = mySharedPrefs.getString("sendungsnamePreff", "keine Vorwahl");
         BenutzerInfo dialogInfoFragment
-            = new BenutzerInfo(WahlActivity.this, gespeicherterBegriff);
+            = new BenutzerInfo(WahlActivity.this, debug, gespeicherterBegriff);
         // Show DialogFragment
-        dialogInfoFragment.show(fm, "Info Dialog Fragment");
+        dialogInfoFragment.show(meinFragmentmanager, "Info Dialog Fragment");
       }
     });
 
@@ -154,15 +165,15 @@ public class
     dialogFrageButton.setOnClickListener(new OnClickListener() {
       public void onClick(View arg0) {
         (new FireMissilesDialogFragment(WahlActivity.this, ""))
-            .show(fm, "FireMissilesDialogFragment");
+            .show(meinFragmentmanager, "FireMissilesDialogFragment");
 
       }
     });
 
-    //(new FireMissilesDialogFragment(this, "")).show(fm, "FireMissilesDialogFragment");
+    //(new FireMissilesDialogFragment(this, "")).show(meinFragmentmanager, "FireMissilesDialogFragment");
 
     //addKeyListener();
-    Button taste = (Button) findViewById(R.id.testTaste1);
+    Button taste = (Button) findViewById(R.id.stopTaste);
     if (debug > 1)
       taste.setText(String.format("WahlActivity.onStart: Stoppe den Mediaplayer. debug=%d", debug));
     else
@@ -173,17 +184,18 @@ public class
 
           @Override
           public void onClick(View view) {
-            if (debug > 2) Log.i("W001", "Mp " + mediaPlayer.toString());
+            if (debug > 2) Log.i("W070", "Mp " + mediaPlayer.toString());
             MediaPlayer.TrackInfo[] trackInfo;
             if (mediaPlayer.isPlaying()) {
               trackInfo = mediaPlayer.getTrackInfo();
               for (int ii = 0; ii < trackInfo.length; ii++) {
-                if (debug > 2) Log.i(String.format("w%3d", ii), trackInfo[ii].toString());
+                if (debug > 2)
+                  Log.i("W072", String.format("w%3d %s", ii, trackInfo[ii].getLanguage()));
               }
               mediaPlayer.stop();
             }
             Toast.makeText(WahlActivity.this,
-                "W001 " + mediaPlayer.toString(), Toast.LENGTH_SHORT).show();
+                "W072 " + mediaPlayer.toString(), Toast.LENGTH_SHORT).show();
           }
         }
     );
@@ -208,7 +220,7 @@ public class
           winkel = 270.0;
           break;
       }
-      if (debug > 1) Log.i("W016", "Rotation hat "
+      if (debug > 8) Log.i("W076", "Rotation hat "
           + winkel + "°, "
           + rotation + " natural rotation");
     }
@@ -218,52 +230,63 @@ public class
 
   @Override
   protected void onResume() {
-    if (debug > 1) Log.i("W020", "onResume DLF has become visible");
+    if (debug > 1) Log.i("W080", "onResume DLF has become visible");
     super.onResume();
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-    if (debug > 1) Log.i("W070", "onPause Another activity than DLF is taking focus");
+    if (debug > 1) Log.i("W082", "onPause Another activity than DLF is taking focus");
   }
 
   @Override
   protected void onStop() {
-    if (debug > 1) Log.i("W080", "onStop DLF is no longer visible");
+    if (debug > 1) Log.i("W084", "onStop DLF is no longer visible");
     super.onStop();
   }
 
   @Override
   protected void onDestroy() {
     super.onDestroy();
-    if (debug > 1) Log.i("W090", "onDestroy DLF destroyed");
+    this.unregisterReceiver(receiver);
+    if (debug > 1) Log.i("W086", "onDestroy DLF destroyed");
   }
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
 
     // Inflate the menu; this adds items to the action bar if it is present.
-    getMenuInflater().inflate(R.menu.wahl, menu);
-    if (debug > 1) Log.i("W089", "onCreateOptionsMenu DLF");
+    getMenuInflater().inflate(R.menu.wahlxml, menu);
+    if (debug > 1) Log.i("o010", "onCreateOptionsMenu DLF");
+    MenuItem item;
+    //MenuItem item = menu.add("Wähle Player");
+    // "@+id/abspielgerät"
+    item = menu.findItem(R.id.abspielgerät);
+    Gerätename =
+        PreferenceManager.getDefaultSharedPreferences(context).getString("Abspielgerät", "160847");
+    if (item != null) {
+      item.setTitle("Abspielgerät" + " " + Gerätename);
+    }
     return true;
   }
 
   // Handles the user's menu selection.
   // Berühre drei Klötzchen rechts oben auf dem Bildschirm.
-  // Beschreibung in res/menu/wahl.xml
+  // Beschreibung in res/menu/wahlxml.xml
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
-    if (debug > 1) Log.i("o010", "MenuItem id=" + item.getItemId() % 100);
+    if (debug > 1) Log.i("o020", String.format("MenuItem id=%d %c %s %s",
+        (item.getItemId()), item.getAlphabeticShortcut(), item.getTitle(), item.getTitleCondensed()));
     switch (item.getItemId()) {
       case android.R.id.home:
         // Berühre das DLF-Icon links oben auf dem Bildschirm
-        if (debug > 1) Log.i("o011", "startActivityAfterCleanup(WahlActivity.class)");
+        if (debug > 1) Log.i("o030", "startActivityAfterCleanup(WahlActivity.class)");
         // ProjectsActivity is my 'home' activity
         startActivityAfterCleanup(WahlActivity.class);
         return true;
       case R.id.action_settings: // Settings res/xml/preferences.xml
-        if (debug > 1) Log.i("o012", "Settings");
+        if (debug > 1) Log.i("o040", "Settings");
         //Intent settingsActivity = new Intent(getBaseContext(), SettingsActivity.class);
         //startActivity(settingsActivity);
         //Intent setPreferenceActivity = new Intent(getBaseContext(), SetPreferenceActivity.class);
@@ -271,19 +294,30 @@ public class
             SetPreferenceActivity.class);
         startActivity(settingsActivity);
         return true;
-      case R.id.refresh:
+      case R.id.frischeSerienauswahlButtonsAuf:
         stelleSerienauswahlbuttonsHer(); // loadPage();
         return true;
       case R.id.vorigeSeite:
         this.prefSeite = ((this.prefSeite > 1) ? --this.prefSeite : this.seitenanzahl);
         stelleSerienauswahlbuttonsHer(); // loadPage();
         return true;
-      case R.id.nächsteSeite:
+      case R.id.andereSeite:
         this.prefSeite++;
         stelleSerienauswahlbuttonsHer(); // loadPage();
         return true;
-      case R.id.seitennummer:
-        stelleSerienauswahlbuttonsHer(); // loadPage();
+      case R.id.abspielgerät:
+        Helfer h = new Helfer(context, debug);
+        h.logi(1, "o080", String.format("%s geklickt", item.getTitle()));
+        Gerätename =
+            PreferenceManager.getDefaultSharedPreferences(context).getString("Abspielgerät", "160847");
+        if (Gerätename.equals("Alt"))
+          Gerätename = "Neu";
+        else
+          Gerätename = "Alt";
+        item.setTitle("Abspielgerät" + " " + Gerätename);
+        h.rettePräferenz("Abspielgerät", Gerätename);
+        h.logi(1, "o082", String.format("%s gespeichert",
+            PreferenceManager.getDefaultSharedPreferences(context).getString("Abspielgerät", "160847")));
         return true;
       default:
         return super.onOptionsItemSelected(item);
@@ -333,7 +367,7 @@ public class
     suchbegriff = serie.getSuchbegriff();
     Toast.makeText(this, "WahlActivity.onFinishEditDialog: "
         + suchbegriff, Toast.LENGTH_SHORT).show();
-    if (debug > debugSchranke) Log.i("W035", "suchbegriff=\"" + suchbegriff + "\"");
+    if (debug > 0) Log.i("W090", "suchbegriff=\"" + suchbegriff + "\"");
     if (!suchbegriff.equals("")) {
       // Anzeigen der Buttons zum Abspielen je einer der Sendungen,
       // die zu diesem Suchhbegriff gefunden werden.
@@ -341,7 +375,7 @@ public class
       serien = new Serien(WahlActivity.this, this,
           this.debug,
           mediaPlayer);
-      serien.loadPage(suchbegriff, 0);
+      serien.loadPage(suchbegriff, 0, !bevorzugeNetz);
       // Füge diesen Suchbegriff dem Objekt serien hinzu
       //serien = new Serien(WahlActivity.this, this, debug, mediaPlayer);
       serien.append(serie);
@@ -349,18 +383,18 @@ public class
   }
 
   public void doPositiverKlick() {
-    if (debug > debugSchranke) Log.i("W040", "doPositiverKlick");
+    if (debug > 0) Log.i("W094", "doPositiverKlick");
   }
 
   public void doNegativerKlick() {
-    if (debug > debugSchranke) Log.i("W040", "doNegativerKlick");
+    if (debug > 0) Log.i("W096", "doNegativerKlick");
   }
 
 /*
   private void showEditDialog() {
-    FragmentManager fm = getFragmentManager();
+    FragmentManager meinFragmentmanager = getFragmentManager();
     BenutzerEdit editNameDialog = new BenutzerEdit();
-    editNameDialog.show(fm, "dialogfragment");
+    editNameDialog.show(meinFragmentmanager, "dialogfragment");
   }
 
 private EditText edittext;

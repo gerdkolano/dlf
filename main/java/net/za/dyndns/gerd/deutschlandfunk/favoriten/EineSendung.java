@@ -3,12 +3,17 @@ package net.za.dyndns.gerd.deutschlandfunk.favoriten;
 import android.util.Log;
 import android.widget.Button;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Created by hanno on 06.06.14.
  * This class represents a single entry (post) in the XML feed.
  * It includes the data members "title," "link," and "zeitstempel."
  */
-public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry entry)
+public class EineSendung implements Comparable<EineSendung> { // benötigt compareTo(EineSendung entry)
   public String title;
   public String autor;
   public int seitenanzahl;
@@ -20,10 +25,13 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
   public Button taste;
   public int debug;
   public static final int siebenZeilen = 7;
+  private static Pattern sixpart = Pattern.compile("(\\d+)-(\\d+)-(\\d+) (\\d+):(\\d+):(\\d+)");
+  private String[] tagesName = {"Sa", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
 
-  public Entry(String title, String autor,
-               int seitenanzahl, int seitennummer,
-               String zeitstempel, String link, String duration, int debug) {
+  public EineSendung(String title, String autor,
+                     int seitenanzahl, int seitennummer,
+                     String zeitstempel, String link, String duration, int debug) {
+
     this.title = title;
     this.autor = autor;
     this.seitenanzahl = seitenanzahl;
@@ -35,7 +43,7 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
     this.debug = debug;
   }
 
-  public Entry(int debug) {
+  public EineSendung(int debug) {
     this.title = null;
     this.autor = null;
     this.seitenanzahl = 0;
@@ -47,26 +55,47 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
     this.taste = null;
     this.debug = debug;
   }
+/*
+Die Monatsnummer im zeitstempel liegt in 1..12, aber
+GregorianCalendar erwartet sie in 0..11.
+ */
+  private String wochentag() {
+    Matcher m = sixpart.matcher(zeitstempel);
+    if (m.matches()) {
+      int Jahr = Integer.parseInt(m.group(1));
+      int Monat = Integer.parseInt(m.group(2))  -  1;
+      int Tag = Integer.parseInt(m.group(3));
+/*
+      int Stunde = Integer.parseInt(m.group(4));
+      int Minute = Integer.parseInt(m.group(5));
+      int Sekunde = Integer.parseInt(m.group(6));
+*/
+      GregorianCalendar dieserTag = new GregorianCalendar(Jahr, Monat, Tag);
+      int tagDerWoche = dieserTag.get(Calendar.DAY_OF_WEEK);
+    return tagesName[tagDerWoche];
+    }
+    return "";
+  }
 
   @Override
-  public int compareTo(Entry entry) {  // für "implements Comparable<Entry>"
-    //return this.link.compareTo(entry.link);
-    int lastCmp = entry.zeitstempel.compareTo(this.zeitstempel);
-    return (lastCmp != 0 ? lastCmp : entry.link.compareTo(this.link));
-    //return entry.link.compareTo(this.link);
+  public int compareTo(EineSendung eineSendung) {  // für "implements Comparable<EineSendung>"
+    //return this.link.compareTo(eineSendung.link);
+    int lastCmp = eineSendung.zeitstempel.compareTo(this.zeitstempel);
+    return (lastCmp != 0 ? lastCmp : eineSendung.link.compareTo(this.link));
+    //return eineSendung.link.compareTo(this.link);
   }
 
   public void setTaste(Button taste) {
     this.taste = taste;
   }
-
+/*
   public void machHtml(
       boolean verweisPref,
       boolean zeitstempelPref,
       boolean autorPref) {
     StringBuilder htmlInhalt = new StringBuilder("");
     htmlInhalt.append("<p>");
-//      htmlInhalt.append(this.seitennummer + "/");
+//      htmlInhalt.append(this.abspielgerät + "/");
 //      htmlInhalt.append(this.seitenanzahl + " ");
     if (verweisPref) htmlInhalt.append(link + " ");
     htmlInhalt.append("<a href='" + link + "'>");
@@ -77,7 +106,7 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
     if (autorPref) htmlInhalt.append(" Autor: " + autor);
     htmlDarstellung = htmlInhalt.toString();
   }
-
+*/
   public String machDateiname() {
     String zwerg = link;
     zwerg = zwerg.replaceFirst(".*/.*?_", "");
@@ -86,23 +115,26 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
   }
 
   public CharSequence buttontext(boolean autor, boolean zeit) {
-    if (debug>1)
+    if (debug > 1)
       return ""
-              + (this.seitennummer + 1) + "/"
-              + this.seitenanzahl + " "
-              + this.autor + " "
-              + this.title + " -> "
-              + this.machDateiname();
+          + this.wochentag() + " "
+          + this.seitennummer + "/"
+          + this.seitenanzahl + " "
+          + this.autor + " "
+          + this.zeitstempel + " "
+          + this.title + " -> "
+          + this.machDateiname();
     else
       return ""
-          + (zeit ?(this.zeitstempel + " \u2014 "):"") // em-dash
-          + (autor?(this.autor       + " \u2014 "):"") // em-dash
-              + this.title;
+          + this.wochentag() + " "
+          + (zeit ? (this.zeitstempel + " \u2014 ") : "") // em-dash
+          + (autor ? (this.autor + " \u2014 ") : "") // em-dash
+          + this.title;
   }
 
   public String zuRetten() {
     // Schreibe siebenZeilen Zeilen
-    String erg = String.format("%s\n%s\n%d\n%d\n%s\n%s\n%s\n",
+    return String.format("%s\n%s\n%d\n%d\n%s\n%s\n%s\n",
         this.title,
         this.autor,
         this.seitenanzahl,
@@ -111,7 +143,6 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
         this.link,
         this.duration
     );
-    return erg;
   }
 
   public boolean allesGesammelt(String strLine, int zeile) {
@@ -144,13 +175,14 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
         return false;
       case 6:
         duration = strLine;
-      default:return true;
+      default:
+        return true;
     }
   }
-
+/*
   public void ladeNach(String strLine, int zeile) {
     // Print the content on the console
-    if (debug>8) Log.i("Lade", strLine);
+    if (debug > 8) Log.i("Lade", strLine);
     //System.out.println(strLine);
     switch (zeile % siebenZeilen) {
       case 0:
@@ -186,6 +218,6 @@ public class Entry implements Comparable<Entry> { // benötigt compareTo(Entry e
         break;
     }
   }
-
+*/
 }
 

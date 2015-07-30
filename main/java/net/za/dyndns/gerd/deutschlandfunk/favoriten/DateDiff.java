@@ -1,10 +1,7 @@
 package net.za.dyndns.gerd.deutschlandfunk.favoriten;
 
-import junit.framework.ComparisonFailure;
-
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -27,15 +24,32 @@ public class DateDiff {
     long diff = today.getTime() - d1.getTime();
 
     // Construct a new GregorianCalendar initialized to the current date
-    Calendar heute = new GregorianCalendar();
+    Calendar heute = new GregorianCalendar(); // auf null Uhr stellen
+    heute.set(Calendar.HOUR, 0);
+    heute.set(Calendar.MINUTE, 0);
+    heute.set(Calendar.SECOND, 0);
+    heute.set(Calendar.MILLISECOND, 0);
     Holtermine holtermine = new Holtermine(heute);
 
-    holtermine.add(2, "Gelber Sack", new GregorianCalendar(2014, 0, 2), new GregorianCalendar(2016, 0, 1));
-    holtermine.add(4, "Berlin Recycling", new GregorianCalendar(2014, 0, 22), new GregorianCalendar(2016, 0, 1));
-    holtermine.add(4, "Veolia", new GregorianCalendar(2014, 0, 14), new GregorianCalendar(2016, 0, 1));
-    holtermine.add(4, "Alba Pappy", new GregorianCalendar(2014, 0, 8), new GregorianCalendar(2016, 0, 1));
+    GregorianCalendar ersterTagGelb = new GregorianCalendar(2014, 0, 2);
+    GregorianCalendar ersterTagBerl = new GregorianCalendar(2014, 0, 22);
+    GregorianCalendar ersterTagVeol = new GregorianCalendar(2014, 0, 14);
+    GregorianCalendar ersterTagAlba = new GregorianCalendar(2014, 0, 8);
+    GregorianCalendar letzterTag = new GregorianCalendar(2016, 0, 1);
 
-    holtermine.zeige();
+    holtermine.fügeAbholtermineEinerFirmaHinzu(2, "Gelber Sack", ersterTagGelb, letzterTag);
+    holtermine.fügeAbholtermineEinerFirmaHinzu(4, "Berlin Recycling", ersterTagBerl, letzterTag);
+    holtermine.fügeAbholtermineEinerFirmaHinzu(4, "Veolia", ersterTagVeol, letzterTag);
+    holtermine.fügeAbholtermineEinerFirmaHinzu(4, "Alba Pappy", ersterTagAlba, letzterTag);
+
+    holtermine.zeigeAbholtermine();
+
+    System.out.println("Das 21ste Jahrhundert (am " + today + ") ist "
+        + (diff / (1000 * 60 * 60 * 24)) + " Tage alt.");
+    System.out.println(" ");
+
+    holtermine.zeigeMonatstabellen();
+
     System.out.println("Das 21ste Jahrhundert (am " + today + ") ist "
         + (diff / (1000 * 60 * 60 * 24)) + " Tage alt.");
   }
@@ -43,88 +57,193 @@ public class DateDiff {
 
 class EinTermin implements Comparable<EinTermin> {
   private String firma;
-  private long zeitpunkt;
+  private GregorianCalendar gZeitpunkt;
+  //private long zeitpunkt;
 
-  EinTermin(String firma, long zeitpunkt) {
+  EinTermin(String firma, GregorianCalendar gZeitpunkt) {
     this.firma = firma;
-    this.zeitpunkt = zeitpunkt;
+    this.gZeitpunkt = gZeitpunkt;
   }
 
   @Override
   public int compareTo(EinTermin n) {
-    //int lastCmp = zeitpunkt.compareTo(n.zeitpunkt);
+    return this.gZeitpunkt.compareTo(n.gZeitpunkt);
+    /*
     int lastCmp = Long.compare(this.zeitpunkt, n.zeitpunkt);
     return (lastCmp != 0 ? lastCmp : this.firma.compareTo(n.firma));
+    */
+  }
+
+  //String[] tagesNam = new String[7];
+  String[] tagesName = {"Sa", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
+
+  public String firma() {
+    return this.firma/*.substring(0, 2)*/;
   }
 
   public String toString() {
-    Calendar calendar = new GregorianCalendar();
-    calendar.setTime(new Date(zeitpunkt));
-    return String.format("%04d-%02d-%02d %s",
-        calendar.get(Calendar.YEAR),
-        1 + calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH),
+    return String.format("%d %s %04d-%02d-%02d %s",
+        this.gZeitpunkt.get(Calendar.DAY_OF_WEEK),
+        tagesName[this.gZeitpunkt.get(Calendar.DAY_OF_WEEK)],
+        this.gZeitpunkt.get(Calendar.YEAR),
+        1 + this.gZeitpunkt.get(Calendar.MONTH),
+        this.gZeitpunkt.get(Calendar.DAY_OF_MONTH),
         firma
     );
   }
 }
 
+class HTML {
+  static public String tdaspan = "<td colspan=\"7\" align=\"center\" >";
+  static public String tda = "<td>", tde = "</td>";
+  static public String tra = "<tr>", tre = "</tr>";
+  static public String tablea = "<table border=\"2\">", tablee = "</table>";
+}
+
 class Holtermine {
   private List<EinTermin> abholtermine;
   Calendar abHeute;
-  long heuteMs;
 
   Holtermine() {
     abholtermine = new ArrayList<EinTermin>();
-    heuteMs = Long.MIN_VALUE;
   }
 
   Holtermine(Calendar abHeute) {
     this();
     this.abHeute = abHeute;
-    heuteMs = abHeute.getTimeInMillis();
   }
 
-  public void adda(String firma, Calendar anfang, Calendar ende) {
-    long msJeVierWochen = 4L * 7l * 86400l * 1000L;
-    long anfangMs, endeMs;
-    anfangMs = anfang.getTime().getTime();
-    endeMs = ende.getTime().getTime();
-    for (long zeitpunkt = anfangMs;
-         zeitpunkt < endeMs;
-         zeitpunkt += msJeVierWochen) {
-      if (zeitpunkt > heuteMs)
-        add(new EinTermin(firma, zeitpunkt));
+  int marke = 0;
+  String formatFirma = "%-6.6s ";
+  String formatNummer = "%2d     ";
+
+  /**
+   * Schiebe eventuell "marke" vorwärts und liefere die Tagesnummer oder den Firmennamen.
+   *
+   * @param laufenderTag dafür wird eine Tabellenzeile hegestellt
+   * @return Liefert eine Tabellenzeile
+   */
+  String nächster(GregorianCalendar laufenderTag) {
+    EinTermin suchMarke = new EinTermin("", laufenderTag);
+    while (marke < abholtermine.size()) {
+      EinTermin heuMarke = abholtermine.get(marke);
+      int vergleichsergebnis = heuMarke.compareTo(suchMarke);
+      if (vergleichsergebnis < 0)
+        marke++;
+      if (vergleichsergebnis == 0)
+        return String.format(formatFirma, abholtermine.get(marke).firma());
+      if (vergleichsergebnis > 0)
+        return String.format(formatNummer, laufenderTag.get(Calendar.DAY_OF_MONTH));
+
+    }
+    return String.format(formatNummer, laufenderTag.get(Calendar.DAY_OF_MONTH));
+  }
+
+  public void fügeAbholtermineEinerFirmaHinzu(int intervall, String firma,
+                                              GregorianCalendar laufenderMonat, GregorianCalendar ende) {
+    for (;
+         laufenderMonat.compareTo(ende) < 0;
+         laufenderMonat.add(Calendar.DAY_OF_MONTH, intervall * 7)) {
+      GregorianCalendar neuerTermin = new GregorianCalendar(
+          laufenderMonat.get(Calendar.YEAR),
+          laufenderMonat.get(Calendar.MONTH),
+          laufenderMonat.get(Calendar.DAY_OF_MONTH)
+      );
+      if (neuerTermin.compareTo(abHeute) >= 0)
+        zurListe(new EinTermin(firma, neuerTermin));
     }
   }
 
-  public void add(long intervall, String firma, Calendar anfang, Calendar ende) {
-    long msJeVierWochen = intervall * 7l * 86400l * 1000L;
-    long anfangMs, endeMs;
-    anfangMs = anfang.getTime().getTime();
-    endeMs = ende.getTime().getTime();
-    long vierWochen = (heuteMs - anfangMs) / msJeVierWochen;
-    anfangMs += (vierWochen + 1) * msJeVierWochen;
-    for (long zeitpunkt = anfangMs;
-         zeitpunkt < endeMs;
-         zeitpunkt += msJeVierWochen) {
-      add(new EinTermin(firma, zeitpunkt));
-    }
-  }
-
-  public void add(EinTermin einTermin) {
+  public void zurListe(EinTermin einTermin) {
+    //System.out.println(einTermin.toString());
     abholtermine.add(einTermin);
+    //zeigeAbholtermine();System.out.println();
   }
 
-  public void zeige() {
+  public void zeigeAbholtermine() {
     Collections.sort(abholtermine);
     for (EinTermin einTermin : abholtermine) {
       System.out.println(einTermin.toString());
     }
   }
 
+  String[] monatsName = {
+      "Januar", "Februar", "März", "April",
+      "Mai", "Juni", "Juli", "August",
+      "September", "Oktober", "November", "Dezember"};
+
+  void zeigeMonatstabellen() {
+    Collections.sort(abholtermine);
+    GregorianCalendar allerletzter = new GregorianCalendar(2015, 3, 2);
+    GregorianCalendar laufenderMonat = new GregorianCalendar(
+        abHeute.get(Calendar.YEAR),
+        abHeute.get(Calendar.MONTH),
+        1 // abHeute.get(Calendar.DAY_OF_MONTH)
+    );
+    String erg = HTML.tablea;
+    for (
+        ;
+        laufenderMonat.compareTo(allerletzter) < 0;
+        laufenderMonat.add(Calendar.MONTH, 1)) {
+      int rest;
+      GregorianCalendar ultimo = new GregorianCalendar(
+          laufenderMonat.get(Calendar.YEAR),
+          laufenderMonat.get(Calendar.MONTH),
+          laufenderMonat.get(Calendar.DAY_OF_MONTH));
+      ultimo.add(Calendar.MONTH, 1);
+
+      GregorianCalendar laufenderTag = new GregorianCalendar(
+          laufenderMonat.get(Calendar.YEAR),
+          laufenderMonat.get(Calendar.MONTH),
+          laufenderMonat.get(Calendar.DAY_OF_MONTH));
+
+      erg += HTML.tra;
+      erg += HTML.tdaspan;
+      erg += monatsName[laufenderTag.get(Calendar.MONTH)]
+          + " " + laufenderTag.get(Calendar.YEAR)
+          + HTML.tde
+          + HTML.tre
+          + "\n";
+
+      rest = (5 + laufenderTag.get(Calendar.DAY_OF_WEEK)) % 7;
+      erg += HTML.tra;
+      for (int ii = rest; ii > 0; ii--) {
+        erg += HTML.tda;
+        erg += String.format(formatFirma, "..");
+        erg += HTML.tde;
+      }
+      for (;
+           laufenderTag.compareTo(ultimo) < 0;
+           laufenderTag.add(Calendar.DAY_OF_MONTH, 1)) {
+        erg += HTML.tda;
+        erg += this.nächster(laufenderTag);
+        erg += HTML.tde;
+        // erg += String.format("%02d ", laufenderTag.get(Calendar.DAY_OF_MONTH));
+        if (laufenderTag.get(Calendar.DAY_OF_WEEK) == 1) {
+          erg += HTML.tre;
+          erg +=
+              // " " + (1 + laufenderTag.get(Calendar.MONTH))
+              // + " " + laufenderTag.get(Calendar.YEAR)
+              // +
+              "\n";
+          erg += HTML.tra;
+        }
+      }
+      rest = (9 - laufenderTag.get(Calendar.DAY_OF_WEEK)) % 7;
+      for (int ii = rest; ii > 0; ii--) {
+        erg += HTML.tda;
+        erg += String.format(formatFirma, "..");
+        erg += HTML.tde;
+      }
+      erg += HTML.tre;
+      if (rest > 0) erg += "\n";
+    }
+    erg += HTML.tablee;
+    System.out.println(erg);
+  }
+
   public Date getEasterDate(int year) {
-    Date result = null;
+    Date result;
 
     int a = year % 19;
     int b = year / 100;

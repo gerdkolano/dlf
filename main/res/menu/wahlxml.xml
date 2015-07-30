@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <menu
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -10,16 +12,20 @@
     android:title="@string/action_settings"
     app:showAsAction="never"/>
   <item
-    android:id="@+id/refresh"
-    android:title="@string/refresh" />
+    android:id="@+id/frischeSerienauswahlButtonsAuf"
+    android:alphabeticShortcut="f"
+    android:title="@string/frischeSerienauswahlButtonsAuf"
+    android:titleCondensed="TitleCondensed"
+    />
   <item
-    android:id="@+id/seitennummer"
-    android:title="@string/seitennummer" />
+    android:id="@+id/abspielgerät"
+    android:alphabeticShortcut="n"
+    android:title="@string/seitennummer"/>
   <item
-    android:id="@+id/nächsteSeite"
-    android:title="@string/nächsteSeite" />
+    android:id="@+id/andereSeite"
+    android:title="@string/andereSeite"/>
   <item
     android:id="@+id/vorigeSeite"
-    android:title="@string/vorigeSeite" />
+    android:title="@string/vorigeSeite"/>
 
 </menu>

@@ -16,9 +16,9 @@ public class SetPreferenceActivity extends Activity {
 * android.R.id.content gives you the root element of a view,
 * without having to know its actual name/type/ID.
  */
-    Log.i("Sprf", "start PreferenceActivity");
+    Log.i("A010", "start PreferenceActivity");
     getFragmentManager().beginTransaction().replace(android.R.id.content,
         new PrefsFragment()).commit();
-    Log.i("Sprf", "stop PreferenceActivity");
+    Log.i("A020", "stop PreferenceActivity");
   }
 }

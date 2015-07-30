@@ -2,7 +2,6 @@ package net.za.dyndns.gerd.deutschlandfunk.favoriten;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -17,8 +16,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TreeSet;
 
 /**
@@ -33,7 +30,6 @@ public class Serien {
   private int debug;
   private DownloadDlfunk downloadDlfunk;
   private MediaPlayer mediaPlayer;
-  private int debugSchranke = 3;
 
   public Serien(Activity activity, Context context, int debug, MediaPlayer mediaPlayer) {
     this.activity = activity;
@@ -54,12 +50,8 @@ public class Serien {
     return serie;
   }
 
-  private String dateiname(String suchbegriff) {
-    return suchbegriff.replaceAll("[^A-Za-z_0-9]", "_") + "-v2.txt";
-  }
-
   public Serien erzeugeSerien() {
-    //loescheDieSeriendatei();
+    //löscheDieSeriendatei();
     if (!ladeAusDerSeriendatei()) {
       this.serie.add(new Serie("Forschung aktuell", "searchterm=forschung+aktuell"));
       this.serie.add(new Serie("Computer und Kommunikation", "searchterm=computer+und+kommunikation"));
@@ -73,13 +65,13 @@ public class Serien {
     return this;
   }
 
-  public boolean loescheDieSeriendatei() {
-    if (debug > 2) Log.i("SE30", "lösche " + filename);
+  public boolean löscheDieSeriendatei() {
+    if (debug > 2) Log.i("SE20", "lösche " + filename);
     boolean erg = context.deleteFile(filename);
     if (erg) {
-      if (debug > 0) Log.i("SE31", filename + " gelöscht.");
+      if (debug > 0) Log.i("SE30", filename + " gelöscht.");
     } else {
-      if (debug > 0) Log.i("SE32", "kann " + filename + " nicht löschen.");
+      if (debug > 0) Log.i("SE40", "kann " + filename + " nicht löschen.");
     }
     return erg;
   }
@@ -96,14 +88,14 @@ public class Serien {
     }
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
-      if (debug > 2) Log.i("SE20", "Lies \"serien\" aus " + filename);
+      if (debug > 2) Log.i("SE50", "Lies \"serien\" aus " + filename);
       String strLine;
       //Read File Line By Line
       int zeile = 0;
       Serie neueSerie = new Serie();
       while ((strLine = br.readLine()) != null) {
         // Print the content on the logcat
-        if (debug > debugSchranke) Log.i("SE" + String.format("%2d", zeile), strLine);
+        if (debug > 8) Log.i("SE60", String.format("%2d %s", zeile, strLine));
         // Sammle die einzelnen Felder
         if (neueSerie.allesGesammelt(strLine, zeile)) {
           this.serie.add(neueSerie);
@@ -125,16 +117,16 @@ public class Serien {
 
   public void retteInDieSeriendatei() {
     FileOutputStream outputStream;
-    if (debug > 2) Log.i("SE40", "Erzeuge " + filename);
+    if (debug > 2) Log.i("SE70", "Erzeuge " + filename);
     int nummer = 0;
     try {
       outputStream = context.openFileOutput(filename, Context.MODE_PRIVATE);
       for (Serie was : this.serie) {
-        if (debug > debugSchranke) Log.i(String.format("Sr%2d", nummer),
+        if (debug > 3) Log.i("SR10", String.format("Serie %02d %s", nummer,
             was.getMenschenlesbarerName()
                 + " "
                 + was.getSuchbegriff()
-        );
+        ));
         outputStream.write(was.zuRetten().getBytes());
         nummer++;
       }
@@ -148,7 +140,7 @@ public class Serien {
     this.serie.add(serie);
     retteInDieSeriendatei();
   }
-
+/*
   public void add(Serie serie) {
     FileOutputStream outputStream;
     try {
@@ -160,19 +152,28 @@ public class Serien {
       e.printStackTrace();
     }
   }
-
+*/
   int seitennummer = 1;
 
-  public void stelleSerienauswahlbuttonsHer() {
+  public void stelleSerienauswahlbuttonsHer() { // WahlActivity
     String KEINE = "keine Vorwahl";
     Serien serien = new Serien(activity, context, debug, mediaPlayer);
-    if (debug > debugSchranke)
-      Log.i("SR10", " Erstelle " + serien.size() + " Serienauswahlbuttons.");
-    LinearLayout layout = (LinearLayout) activity.findViewById(R.id.welcheSerie);
+    if (debug > 3)
+      Log.i("SR20", " Erstelle " + serien.size() + " Serienauswahlbuttons.");
+    /* netz0Serie ist in activity_wahl.xml definiert*/
+    LinearLayout netz0layout = (LinearLayout) activity.findViewById(R.id.netz0Serie);
+    LinearLayout netz1layout = (LinearLayout) activity.findViewById(R.id.netz1Serie);
     int nummer = 0;
     for (Serie serie : serien.getSerie()) {
-      Button Taste = new Button(context);
-      Taste.setLayoutParams(
+      Button netz0Taste = new Button(context);
+      netz0Taste.setLayoutParams(
+          new ViewGroup.LayoutParams(
+              ViewGroup.LayoutParams.MATCH_PARENT,
+              ViewGroup.LayoutParams.WRAP_CONTENT
+          )
+      );
+      Button netz1Taste = new Button(context);
+      netz1Taste.setLayoutParams(
           new ViewGroup.LayoutParams(
               ViewGroup.LayoutParams.MATCH_PARENT,
               ViewGroup.LayoutParams.WRAP_CONTENT
@@ -180,50 +181,67 @@ public class Serien {
       );
       final String menschenlesbarerName = serie.getMenschenlesbarerName();
       String suchwort = serie.getSuchbegriff();
-      SerienClickHandler handler = new SerienClickHandler(menschenlesbarerName, suchwort);
-      //handler.set(menschenlesbarerName, suchbegriff);
-      if (debug > 1)
-        Taste.setText("Serie-" + nummer + " " + menschenlesbarerName + " : " + suchwort);
-      else
-        Taste.setText(menschenlesbarerName);
-      Taste.setId(160847 + nummer++);
-      if (debug > debugSchranke) Log.i("SR20", " " + nummer
+      Netz9ClickHandler n0handler = new Netz9ClickHandler(menschenlesbarerName, suchwort, false);
+      Netz9ClickHandler n1handler = new Netz9ClickHandler(menschenlesbarerName, suchwort, true);
+      //n0handler.set(menschenlesbarerName, suchbegriff);
+      String n0Schild = "Datei " + menschenlesbarerName;
+      String n1Schild = "Netz " + menschenlesbarerName;
+      if (debug > 1) {
+        n0Schild = "Schild-n0 Serie-" + nummer + " " + n0Schild + " : " + suchwort;
+        n1Schild = "Schild-n1 Serie-" + nummer + " " + n1Schild + " : " + suchwort;
+      }
+      netz0Taste.setText(n0Schild);
+      netz1Taste.setText(n1Schild);
+      netz0Taste.setId(160847 + nummer++);
+      if (debug > 8) Log.i("SR30", " " + nummer
           + " \"" + menschenlesbarerName + "\" " + suchwort);
-      Taste.setOnClickListener(handler);
-      layout.addView(Taste);
+      netz0Taste.setOnClickListener(n0handler);
+      netz1Taste.setOnClickListener(n1handler);
+      netz0layout.addView(netz0Taste);
+      netz1layout.addView(netz1Taste);
     }
-    if (debug > 2) Log.i("SR90", serien.size() + " Serienauswahlbuttons hergestellt.");
-    SharedPreferences mySharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String gespeicherterBegriff = mySharedPrefs.getString("sendungsnamePreff", KEINE);
-    if (!gespeicherterBegriff.equals(KEINE)) loadPage(gespeicherterBegriff, seitennummer);
-    if (debug > 2) Log.i("SR99", "gespeicherterBegriff=" + gespeicherterBegriff);
+    if (debug > 2) Log.i("SR40", serien.size() + " Serienauswahlbuttons hergestellt.");
+    String gespeicherterBegriff = PreferenceManager.getDefaultSharedPreferences(context).getString("sendungsnamePreff", KEINE);
+    if (!gespeicherterBegriff.equals(KEINE))
+      loadPage(gespeicherterBegriff, seitennummer, !bevorzugeNetz);
+    if (debug > 2) Log.i("SR45", "angestoßen: loadPage(" + gespeicherterBegriff + ")");
   }
 
-  class SerienClickHandler implements View.OnClickListener {
-    String menschenlesbarerName, klickwort;
+  private final boolean bevorzugeNetz = true;
 
-    SerienClickHandler(String menschenlesbarerName, String suchbegriff) {
+  class Netz9ClickHandler implements View.OnClickListener {
+    String menschenlesbarerName, klickwort;
+    boolean bevorzugeNetz;
+
+    Netz9ClickHandler(String menschenlesbarerName, String suchbegriff, boolean bevorzugeNetz) {
       this.menschenlesbarerName = menschenlesbarerName;
       this.klickwort = suchbegriff;
+      this.bevorzugeNetz = bevorzugeNetz;
     }
-
+/*
     public void set(String menschenlesbarerName, String suchbegriff) {
       this.menschenlesbarerName = menschenlesbarerName;
       this.klickwort = suchbegriff;
     }
-
+*/
     public void onClick(View v) {
-      loadPage(klickwort, seitennummer);
+      if (debug > 2)
+        Log.i("SR52", "geklickt: " + (bevorzugeNetz ? "Netz" : "Datei") + " Serienauswahl " + klickwort);
+      loadPage(klickwort, seitennummer, bevorzugeNetz);
+      if (debug > 2) Log.i("SR54", "angestoßen: loadPage(" + klickwort + "," + seitennummer + ")");
     }
   }
 
-  public void loadPage(String suchbegriff, int seitennummer) {
+  boolean wifiConnected = true, mobileConnected = true;
+
+  // true: bevorzugeNetz
+  public void loadPage(String suchbegriff, int seitennummer, boolean bevorzugeNetz) {
     /*
     if (((sPref.equals(ANY)) && (wifiConnected || mobileConnected))
         || ((sPref.equals(WIFI)) && (wifiConnected))) {
       */
-    if (true /*|| this.wifiConnected || this.mobileConnected*/) {
-      if (debug > debugSchranke) Log.i("SR20", "loadPage " + suchbegriff + " " + seitennummer);
+    if (this.wifiConnected || this.mobileConnected) {
+      if (debug > 2) Log.i("SR60", "stoße an: loadPage(" + suchbegriff + "," + seitennummer + ")");
       //
       //AsyncTask subclass
       //activity this
@@ -232,22 +250,11 @@ public class Serien {
       //DownloadXmlTask downloadXmlTask = (DownloadXmlTask)
       new DownloadXmlTask(
           activity, context, this.debug,
-          downloadDlfunk, mediaPlayer
-      ).execute(suchbegriff); // dort ruft doInBackground ladeXmlseiten(http...?drau:suchbegriff)
-      if (debug > debugSchranke)
-        Log.i("SR30", "Im Hintergrund downloadXmlTask.execute(" + suchbegriff + ") " + seitennummer);
-
-      SharedPreferences mySharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-
-      SharedPreferences.Editor editor = mySharedPrefs.edit();
-      editor.putString("sendungsnamePreff", suchbegriff);
-      if (editor.commit()) {
-        if (debug > debugSchranke)
-          Log.i("SR40", "sendungsnamePreff->" + suchbegriff + " commit'ed");
-      } else {
-        if (debug > debugSchranke)
-          Log.i("SR50", "sendungsnamePreff->" + suchbegriff + " nicht commit'ed");
-      }
+          downloadDlfunk, mediaPlayer, bevorzugeNetz
+      ).execute(suchbegriff); // dort ruft doInBackground ladeXmlBeschreibungen("http...?drau:suchbegriff")
+      Helfer h = new Helfer(context, debug);
+      h.logi(2, "SR70", "InBack downloadXmlTask.execute(" + suchbegriff + "," + seitennummer + ")");
+      h.rettePräferenz("sendungsnamePreff", suchbegriff);
     } else {
       showErrorPage();
     }

@@ -39,10 +39,11 @@
     Je höher die Nummer, desto älter sind die Sendungen"
     android:title="Seitennummer" />
   <EditTextPreference
+    android:selectAllOnFocus="true"
     android:defaultValue="9"
     android:key="debugPref"
     android:summary="Wähle das Debug-Niveau. Je höher das Niveau, desto ausführlicher sind die Meldungen"
-    android:title="Debug" />
+    android:title="@string/entkäfern" />
   <EditTextPreference
     android:defaultValue=""
     android:key="nochEineSeriePref"

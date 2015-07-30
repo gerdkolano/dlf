@@ -13,9 +13,9 @@ public class PrefsFragment extends PreferenceFragment {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    Log.i("Pfr0", "PrefsFragment");
+    Log.i("P010", "PrefsFragment");
     // Load the preferences from an XML resource
     addPreferencesFromResource(R.xml.preferences); // Datei res/xml/preferences.xml
-    Log.i("Pfr1", "PrefsFragment");
+    Log.i("P020", "PrefsFragment");
   }
 }

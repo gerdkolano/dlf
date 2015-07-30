@@ -10,22 +10,40 @@
     android:layout_width="fill_parent"
     android:layout_height="0dp"
     android:layout_weight="4"
+    android:orientation="horizontal"
     >
-
+    <!-- Serien.java füllt das vertikale LinearLayout -->
     <LinearLayout
-      android:id="@+id/welcheSerie"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:orientation="vertical"
+      android:orientation="horizontal"
       >
+
+      <LinearLayout
+        android:id="@+id/netz0Serie"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="4"
+        android:orientation="vertical"
+        >
+      </LinearLayout>
+      <LinearLayout
+        android:id="@+id/netz1Serie"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="4"
+        android:orientation="vertical"
+        >
+      </LinearLayout>
     </LinearLayout>
   </ScrollView>
 
   <LinearLayout
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
+    style="?android:attr/buttonBarStyle"
     >
-
+    <!-- style="?android:attr/buttonBarStyle" für Trennstriche -->
     <Button
       android:id="@+id/dialogEditButton"
       android:layout_width="wrap_content"
@@ -33,6 +51,7 @@
       android:layout_centerInParent="true"
       android:orientation="horizontal"
       android:text="@string/benutzeredit"
+      style="?android:attr/borderlessButtonStyle"
       />
 
     <Button
@@ -42,6 +61,7 @@
       android:layout_centerInParent="true"
       android:orientation="horizontal"
       android:text="@string/benutzerinfo"
+      style="?android:attr/borderlessButtonStyle"
       />
 
     <Button
@@ -51,6 +71,7 @@
       android:layout_centerInParent="true"
       android:orientation="horizontal"
       android:text="@string/benutzerfrage"
+      style="?android:attr/borderlessButtonStyle"
       />
   </LinearLayout>
 
@@ -71,20 +92,53 @@
   -->
 
   <Button
-    android:id="@+id/testTaste1"
+    android:id="@+id/stopTaste"
     android:layout_width="match_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
-    android:text="testTaste1 noch ohne Funktion"
+    android:text="@string/taste1"
     />
+  <LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+>
 
-  <Button
-    android:id="@+id/testTaste2"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_weight="1"
-    android:text="testTaste2 noch ohne Funktion"
-    />
+    <Button
+      android:id="@+id/button0"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:text="@string/nächstes"
+      />
+    <Button
+      android:id="@+id/button1"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:text="@string/nächstes"
+      />
+    <Button
+      android:id="@+id/button2"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:text="@string/pause"
+      />
+    <Button
+      android:id="@+id/button3"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:text="@string/spielAb"
+      />
+    <Button
+      android:id="@+id/button4"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:text="@string/voriges"
+      />
+  </LinearLayout>
 
   <SeekBar
     android:id="@+id/SeekBar01"
@@ -98,7 +152,7 @@
     android:layout_width="fill_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
-    android:text="Fortschritt"
+    android:text="@string/fortschritt"
     />
 
   <ScrollView

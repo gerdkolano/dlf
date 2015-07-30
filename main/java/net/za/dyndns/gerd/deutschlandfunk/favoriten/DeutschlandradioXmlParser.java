@@ -12,12 +12,9 @@ import android.util.Xml;
 */
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
-import org.apache.commons.lang3.StringEscapeUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by hanno on 06.06.14.
@@ -30,7 +27,6 @@ public class DeutschlandradioXmlParser {
   // We don't use namespaces
   private int seitenanzahl = 1;
   private int seitennummer = 0;
-  private String suchbegriff;
   private int debug = 8;
   
   public DeutschlandradioXmlParser( int debug) {
@@ -64,9 +60,9 @@ public class DeutschlandradioXmlParser {
       name = parser.getName();
       // Starts by looking for the item tag
       if (name.equals("item")) {
-        Entry entry = entrySyntaktischZergliedert(parser);
-        entries.seitenanzahl = entry.seitenanzahl;
-        entries.add(entry);
+        EineSendung eineSendung = entrySyntaktischZergliedert(parser);
+        entries.seitenanzahl = eineSendung.seitenanzahl;
+        entries.add(eineSendung);
       } else {
         skip(parser);
       }
@@ -77,7 +73,7 @@ public class DeutschlandradioXmlParser {
   // Parses the contents of an entry. If it encounters a title, zeitstempel, or link tag, hands them
   // off
   // to their respective &quot;read&quot; methods for processing. Otherwise, skips the tag.
-  private Entry entrySyntaktischZergliedert(XmlPullParser parser) throws XmlPullParserException, IOException {
+  private EineSendung entrySyntaktischZergliedert(XmlPullParser parser) throws XmlPullParserException, IOException {
     parser.require(XmlPullParser.START_TAG, ns, "item");
     String title = null;
     String autor = null;
@@ -104,7 +100,7 @@ public class DeutschlandradioXmlParser {
       else if (name.equals("sendung")) sendung = liesEinfachenTag(parser, name);
       else skip(parser);
     }
-    return new Entry(title, autor,
+    return new EineSendung(title, autor,
         this.seitenanzahl, this.seitennummer,
         zeitstempel, link, duration, debug);
   }
